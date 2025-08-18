@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Micro-Break Coach</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>🧘‍♂️ Micro-Break Coach</h1>
+      <div class="streak-counter">
+        <span class="streak-label">Today's breaks:</span>
+        <span class="streak-count" id="streakCount">0</span>
+        <span class="streak-fire">🔥</span>
+      </div>
+    </header>
+
+    <div class="break-section" id="breakSection">
+      <div class="exercise-card">
+        <div class="exercise-emoji" id="exerciseEmoji">🧘‍♂️</div>
+        <h2 class="exercise-name" id="exerciseName">Ready for a break?</h2>
+        <p class="exercise-description" id="exerciseDescription">Click "Get Exercise" to see your next micro-break activity!</p>
+        <div class="exercise-timer" id="exerciseTimer" style="display: none;">
+          <div class="timer-circle">
+            <span class="timer-text" id="timerText">10</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="btn btn-primary" id="getExerciseBtn">Get Exercise</button>
+        <button class="btn btn-success" id="startTimerBtn" style="display: none;">Start Timer</button>
+        <button class="btn btn-complete" id="completeBtn" style="display: none;">Complete Break ✓</button>
+      </div>
+    </div>
+
+    <div class="next-break-timer">
+      <div class="timer-header">
+        <h3>⏰ Next Break In</h3>
+      </div>
+      <div class="countdown-display" id="countdownDisplay">
+        <div class="time-unit">
+          <span class="time-value" id="minutes">00</span>
+          <span class="time-label">min</span>
+        </div>
+        <div class="time-separator">:</div>
+        <div class="time-unit">
+          <span class="time-value" id="seconds">00</span>
+          <span class="time-label">sec</span>
+        </div>
+      </div>
+      <div class="timer-progress">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+    </div>
+
+    <div class="quick-stats">
+      <div class="stat-item">
+        <span class="stat-label">Status:</span>
+        <span class="stat-value" id="status">Active</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Interval:</span>
+        <span class="stat-value" id="intervalDisplay">30 min</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-secondary" id="snoozeBtn">Snooze 5 min</button>
+      <button class="btn btn-secondary" id="optionsBtn">Settings</button>
+    </div>
+
+    <div class="toggle-container">
+      <label class="toggle-switch">
+        <input type="checkbox" id="enableToggle" checked>
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="toggle-label">Enable reminders</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Micro-Break Coach Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>🧘‍♂️ Micro-Break Coach Settings</h1>
+      <p class="subtitle">Customize your break reminders and preferences</p>
+    </header>
+
+    <div class="settings-grid">
+      <!-- Reminder Interval Section -->
+      <section class="setting-section">
+        <h2>⏰ Reminder Interval</h2>
+        <p class="section-description">How often would you like to be reminded to take a break?</p>
+        
+        <div class="interval-options">
+          <label class="interval-option">
+            <input type="radio" name="interval" value="15">
+            <span class="option-card">
+              <span class="option-time">15</span>
+              <span class="option-label">minutes</span>
+            </span>
+          </label>
+          
+          <label class="interval-option">
+            <input type="radio" name="interval" value="30" checked>
+            <span class="option-card">
+              <span class="option-time">30</span>
+              <span class="option-label">minutes</span>
+            </span>
+          </label>
+          
+          <label class="interval-option">
+            <input type="radio" name="interval" value="45">
+            <span class="option-card">
+              <span class="option-time">45</span>
+              <span class="option-label">minutes</span>
+            </span>
+          </label>
+          
+          <label class="interval-option">
+            <input type="radio" name="interval" value="60">
+            <span class="option-card">
+              <span class="option-time">60</span>
+              <span class="option-label">minutes</span>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Break Categories Section -->
+      <section class="setting-section">
+        <h2>🎯 Break Categories</h2>
+        <p class="section-description">Choose which types of exercises you'd like to include</p>
+        
+        <div class="category-options">
+          <label class="category-option">
+            <input type="checkbox" name="categories" value="stretching" checked>
+            <span class="category-card">
+              <span class="category-emoji">💪</span>
+              <span class="category-name">Stretching</span>
+              <span class="category-desc">Neck, shoulders, wrists, back</span>
+            </span>
+          </label>
+          
+          <label class="category-option">
+            <input type="checkbox" name="categories" value="eyecare" checked>
+            <span class="category-card">
+              <span class="category-emoji">👀</span>
+              <span class="category-name">Eye Care</span>
+              <span class="category-desc">20-20-20 rule, eye exercises</span>
+            </span>
+          </label>
+          
+          <label class="category-option">
+            <input type="checkbox" name="categories" value="breathing" checked>
+            <span class="category-card">
+              <span class="category-emoji">🫁</span>
+              <span class="category-name">Breathing</span>
+              <span class="category-desc">Deep breathing, relaxation</span>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Notification Settings Section -->
+      <section class="setting-section">
+        <h2>🔔 Notifications</h2>
+        <p class="section-description">Customize how you receive break reminders</p>
+        
+        <div class="notification-options">
+          <label class="toggle-option">
+            <span class="toggle-info">
+              <span class="toggle-name">🔊 Sound Notifications</span>
+              <span class="toggle-desc">Play a gentle sound with reminders</span>
+            </span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="soundEnabled" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </label>
+          
+          <label class="toggle-option">
+            <span class="toggle-info">
+              <span class="toggle-name">📳 Vibration (if supported)</span>
+              <span class="toggle-desc">Vibrate device for notifications</span>
+            </span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="vibrationEnabled">
+              <span class="toggle-slider"></span>
+            </label>
+          </label>
+        </div>
+      </section>
+
+      <!-- Statistics Section -->
+      <section class="setting-section">
+        <h2>📊 Your Progress</h2>
+        <p class="section-description">Track your break-taking habits</p>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-number" id="todayBreaks">0</span>
+            <span class="stat-label">Today's Breaks</span>
+          </div>
+          
+          <div class="stat-card">
+            <span class="stat-number" id="totalBreaks">0</span>
+            <span class="stat-label">Total Breaks</span>
+          </div>
+          
+          <div class="stat-card">
+            <span class="stat-number" id="bestStreak">0</span>
+            <span class="stat-label">Best Daily Streak</span>
+          </div>
+          
+          <div class="stat-card">
+            <span class="stat-number" id="daysActive">0</span>
+            <span class="stat-label">Days Active</span>
+          </div>
+        </div>
+        
+        <button class="btn btn-reset" id="resetStatsBtn">Reset Statistics</button>
+      </section>
+
+      <!-- Actions Section -->
+      <section class="setting-section">
+        <h2>⚡ Quick Actions</h2>
+        <p class="section-description">Manage your break reminders</p>
+        
+        <div class="action-buttons">
+          <button class="btn btn-primary" id="testNotificationBtn">Test Notification</button>
+          <button class="btn btn-secondary" id="pauseRemindersBtn">Pause for 1 Hour</button>
+          <button class="btn btn-success" id="takeBreakNowBtn">Take Break Now</button>
+        </div>
+      </section>
+    </div>
+
+    <footer class="footer">
+      <div class="save-section">
+        <button class="btn btn-save" id="saveBtn">Save Settings</button>
+        <span class="save-status" id="saveStatus"></span>
+      </div>
+      
+      <div class="footer-info">
+        <p>Micro-Break Coach v1.0 | Made with ❤️ for your wellbeing</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
