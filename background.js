@@ -259,15 +259,33 @@ chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIn
       await microBreakCoach.incrementStreak();
       chrome.notifications.clear(notificationId);
       
-      // Open popup and automatically show exercise
+      // Try to open popup and show exercise
       try {
+        // Always try to send the message first (in case popup is already open)
+        chrome.runtime.sendMessage({ action: 'showExercise' }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.log('Message failed, popup might not be open:', chrome.runtime.lastError.message);
+          } else {
+            console.log('Exercise message sent successfully:', response);
+          }
+        });
+        
+        // Also try to open popup (will fail silently if already open)
         await chrome.action.openPopup();
-        // Send message to popup to show exercise automatically
+        
+        // Send message again after a short delay to ensure popup is ready
         setTimeout(() => {
-          chrome.runtime.sendMessage({ action: 'showExercise' });
-        }, 100);
+          chrome.runtime.sendMessage({ action: 'showExercise' }, (response) => {
+            if (chrome.runtime.lastError) {
+              console.log('Delayed message failed:', chrome.runtime.lastError.message);
+            } else {
+              console.log('Delayed exercise message sent:', response);
+            }
+          });
+        }, 150);
+        
       } catch (error) {
-        console.log('Could not open popup, user will need to click extension icon');
+        console.log('Could not open popup, but message should still work if popup is open');
       }
     } else if (buttonIndex === 1) {
       // Snooze button clicked
@@ -287,15 +305,33 @@ chrome.notifications.onClicked.addListener(async (notificationId) => {
     await microBreakCoach.incrementStreak();
     chrome.notifications.clear(notificationId);
     
-    // Open popup and automatically show exercise
+    // Try to open popup and show exercise
     try {
+      // Always try to send the message first (in case popup is already open)
+      chrome.runtime.sendMessage({ action: 'showExercise' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.log('Message failed, popup might not be open:', chrome.runtime.lastError.message);
+        } else {
+          console.log('Exercise message sent successfully:', response);
+        }
+      });
+      
+      // Also try to open popup (will fail silently if already open)
       await chrome.action.openPopup();
-      // Send message to popup to show exercise automatically
+      
+      // Send message again after a short delay to ensure popup is ready
       setTimeout(() => {
-        chrome.runtime.sendMessage({ action: 'showExercise' });
-      }, 100);
+        chrome.runtime.sendMessage({ action: 'showExercise' }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.log('Delayed message failed:', chrome.runtime.lastError.message);
+          } else {
+            console.log('Delayed exercise message sent:', response);
+          }
+        });
+      }, 150);
+      
     } catch (error) {
-      console.log('Could not open popup, user will need to click extension icon');
+      console.log('Could not open popup, but message should still work if popup is open');
     }
   } else if (notificationId === 'microBreakTestNotification') {
     // Test notification - just clear it, don't increment counter

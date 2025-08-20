@@ -26,6 +26,7 @@ class PopupController {
     this.timerInterval = null;
     this.countdownInterval = null;
     this.remainingTime = 0;
+    this.breakStartedFromNotification = false; // Track if break came from notification
     
     this.init();
   }
@@ -134,6 +135,11 @@ class PopupController {
     if (this.settings.soundEnabled) {
       this.playNotificationSound();
     }
+    
+    // Mark that this break was manually started (not from notification)
+    if (!this.breakStartedFromNotification) {
+      console.log('Manual break started - will increment counter on completion');
+    }
   }
 
   displayExercise(exercise) {
@@ -149,7 +155,16 @@ class PopupController {
     document.getElementById('completeBtn').style.display = 'block';
     
     // Add animation
-    document.querySelector('.exercise-card').classList.add('fade-in');
+    const exerciseCard = document.querySelector('.exercise-card');
+    exerciseCard.classList.remove('fade-in'); // Remove first to retrigger
+    exerciseCard.classList.add('fade-in');
+    
+    // If this came from a notification, add a special indicator
+    if (this.breakStartedFromNotification) {
+      const exerciseName = document.getElementById('exerciseName');
+      exerciseName.textContent = `🔔 ${exercise.name}`;
+      console.log('Exercise displayed from notification');
+    }
   }
 
   startTimer() {
@@ -199,8 +214,16 @@ class PopupController {
   }
 
   async completeBreak() {
-    // Increment streak
-    await this.incrementStreak();
+    // Only increment counter if this was a manual break (not from notification)
+    if (!this.breakStartedFromNotification) {
+      console.log('Manual break completed - incrementing counter');
+      await this.incrementStreak();
+    } else {
+      console.log('Notification break completed - counter already incremented');
+    }
+    
+    // Reset the flag for next break
+    this.breakStartedFromNotification = false;
     
     // Reset UI
     this.resetExerciseUI();
@@ -208,7 +231,7 @@ class PopupController {
     // Show completion message
     this.showCompletionMessage();
     
-    // Update UI
+    // Update UI to reflect any changes
     this.updateUI();
   }
 
@@ -450,22 +473,60 @@ window.addEventListener('beforeunload', () => {
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'showExercise') {
+    console.log('Received showExercise message');
+    
     // Auto-show exercise if opened from notification
     const showExercise = () => {
       if (window.popupController && window.popupController.initialized) {
-        console.log('Auto-showing exercise from notification');
+        console.log('Auto-showing exercise from notification - popup already open');
+        
+        // Reset any current exercise state first
+        if (window.popupController.currentExercise) {
+          window.popupController.resetExerciseUI();
+        }
+        
+        // Mark that this break came from a notification
+        window.popupController.breakStartedFromNotification = true;
         window.popupController.getRandomExercise();
+        
+        // Send response to confirm message was handled
+        sendResponse({ success: true, message: 'Exercise shown' });
       } else {
+        console.log('Popup controller not ready, trying fallback');
         // Fallback: try clicking the button
         const btn = document.getElementById('getExerciseBtn');
-        if (btn) {
+        if (btn && btn.style.display !== 'none') {
+          // Mark that this break came from a notification
+          if (window.popupController) {
+            window.popupController.breakStartedFromNotification = true;
+          }
           btn.click();
+          sendResponse({ success: true, message: 'Button clicked' });
+        } else {
+          sendResponse({ success: false, message: 'Button not available' });
         }
       }
     };
     
-    // Try immediately, then with a small delay as fallback
+    // Try immediately
     showExercise();
-    setTimeout(showExercise, 200);
+    
+    // Also try with delays as fallback
+    setTimeout(() => {
+      if (!window.popupController?.currentExercise) {
+        console.log('Retrying exercise display after 100ms');
+        showExercise();
+      }
+    }, 100);
+    
+    setTimeout(() => {
+      if (!window.popupController?.currentExercise) {
+        console.log('Retrying exercise display after 300ms');
+        showExercise();
+      }
+    }, 300);
+    
+    // Return true to indicate we'll send a response asynchronously
+    return true;
   }
 });
