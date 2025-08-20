@@ -297,6 +297,10 @@ chrome.notifications.onClicked.addListener(async (notificationId) => {
     } catch (error) {
       console.log('Could not open popup, user will need to click extension icon');
     }
+  } else if (notificationId === 'microBreakTestNotification') {
+    // Test notification - just clear it, don't increment counter
+    console.log('MicroBreakCoach: Test notification clicked');
+    chrome.notifications.clear(notificationId);
   }
 });
 
