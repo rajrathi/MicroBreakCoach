@@ -35,6 +35,9 @@ class PopupController {
     this.setupEventListeners();
     this.updateUI();
     this.startCountdownTimer();
+    
+    // Mark as initialized for external access
+    this.initialized = true;
   }
 
   async loadSettings() {
@@ -46,12 +49,29 @@ class PopupController {
         categories: ['stretching', 'eyecare', 'breathing'],
         streakCount: 0,
         lastBreakDate: null,
-        isEnabled: true
+        isEnabled: true,
+        totalBreaks: 0,
+        bestStreak: 0
       }, (settings) => {
         this.settings = settings;
+        
+        // Check if we need to reset daily counter for new day
+        this.checkDailyReset();
+        
         resolve();
       });
     });
+  }
+
+  checkDailyReset() {
+    const today = new Date().toDateString();
+    
+    // If last break was on a different day, we need to handle the day transition
+    if (this.settings.lastBreakDate && this.settings.lastBreakDate !== today) {
+      console.log('New day detected, preparing for daily reset');
+      // Don't reset here, just log. The actual reset happens when incrementStreak is called
+      // This ensures the display shows 0 for today until a break is taken
+    }
   }
 
   async saveSettings() {
@@ -196,12 +216,21 @@ class PopupController {
     const today = new Date().toDateString();
     
     if (this.settings.lastBreakDate !== today) {
+      // First break of the day - reset daily count
+      // Update best streak if current was better
+      if (this.settings.streakCount && this.settings.streakCount > (this.settings.bestStreak || 0)) {
+        this.settings.bestStreak = this.settings.streakCount;
+      }
       this.settings.streakCount = 1;
     } else {
+      // Same day - increment
       this.settings.streakCount += 1;
     }
     
+    // Always increment total breaks
+    this.settings.totalBreaks = (this.settings.totalBreaks || 0) + 1;
     this.settings.lastBreakDate = today;
+    
     await this.saveSettings();
   }
 
@@ -251,8 +280,9 @@ class PopupController {
   }
 
   updateUI() {
-    // Update streak counter
-    document.getElementById('streakCount').textContent = this.settings.streakCount;
+    // Update streak counter (this should show today's breaks)
+    const todayBreaks = this.getTodayBreaks();
+    document.getElementById('streakCount').textContent = todayBreaks;
     
     // Update toggle
     document.getElementById('enableToggle').checked = this.settings.isEnabled;
@@ -269,6 +299,14 @@ class PopupController {
       statusElement.textContent = 'Disabled';
       statusElement.className = 'stat-value status-disabled';
     }
+  }
+
+  getTodayBreaks() {
+    const today = new Date().toDateString();
+    if (this.settings.lastBreakDate === today) {
+      return this.settings.streakCount || 0;
+    }
+    return 0; // Different day, so today's count is 0
   }
 
   async startCountdownTimer() {
@@ -413,8 +451,21 @@ window.addEventListener('beforeunload', () => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'showExercise') {
     // Auto-show exercise if opened from notification
-    setTimeout(() => {
-      document.getElementById('getExerciseBtn').click();
-    }, 500);
+    const showExercise = () => {
+      if (window.popupController && window.popupController.initialized) {
+        console.log('Auto-showing exercise from notification');
+        window.popupController.getRandomExercise();
+      } else {
+        // Fallback: try clicking the button
+        const btn = document.getElementById('getExerciseBtn');
+        if (btn) {
+          btn.click();
+        }
+      }
+    };
+    
+    // Try immediately, then with a small delay as fallback
+    showExercise();
+    setTimeout(showExercise, 200);
   }
 });

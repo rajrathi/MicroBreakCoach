@@ -29,21 +29,30 @@ class MicroBreakCoach {
       categories: ['stretching', 'eyecare', 'breathing'],
       streakCount: 0,
       lastBreakDate: null,
-      isEnabled: true
+      isEnabled: true,
+      totalBreaks: 0,
+      bestStreak: 0,
+      dailyStreak: 0
     };
     
     this.init();
   }
 
   async init() {
-    // Set up alarm when extension starts
-    await this.setupAlarm();
+    console.log('MicroBreakCoach: Initializing...');
     
     // Initialize settings if not exists
     const settings = await this.getSettings();
-    if (!settings.interval) {
+    console.log('MicroBreakCoach: Current settings:', settings);
+    
+    if (settings.interval === undefined) {
+      console.log('MicroBreakCoach: No settings found, creating defaults');
       await this.saveSettings(this.defaultSettings);
     }
+    
+    // Set up alarm when extension starts
+    await this.setupAlarm();
+    console.log('MicroBreakCoach: Initialization complete');
   }
 
   async getSettings() {
@@ -64,16 +73,27 @@ class MicroBreakCoach {
 
   async setupAlarm() {
     const settings = await this.getSettings();
+    console.log('MicroBreakCoach: Setting up alarm with settings:', settings);
     
     // Clear existing alarm
-    chrome.alarms.clear('microBreakReminder');
+    await chrome.alarms.clear('microBreakReminder');
+    console.log('MicroBreakCoach: Cleared existing alarms');
     
     if (settings.isEnabled) {
       // Create new alarm
-      chrome.alarms.create('microBreakReminder', {
+      const alarmInfo = {
         delayInMinutes: settings.interval,
         periodInMinutes: settings.interval
-      });
+      };
+      
+      await chrome.alarms.create('microBreakReminder', alarmInfo);
+      console.log('MicroBreakCoach: Created new alarm:', alarmInfo);
+      
+      // Verify alarm was created
+      const alarms = await chrome.alarms.getAll();
+      console.log('MicroBreakCoach: All alarms:', alarms);
+    } else {
+      console.log('MicroBreakCoach: Reminders disabled, no alarm created');
     }
   }
 
@@ -94,12 +114,13 @@ class MicroBreakCoach {
   }
 
   async showBreakNotification() {
+    console.log('MicroBreakCoach: Showing break notification');
     const settings = await this.getSettings();
     const exercise = this.getRandomExercise(settings.categories);
     
     const options = {
       type: 'basic',
-      iconUrl: 'icons/icon128.png',
+      iconUrl: '/icons/icon128.png', // Use relative path
       title: `Time for a break! ${exercise.emoji}`,
       message: `${exercise.name}: ${exercise.description}`,
       priority: 2,
@@ -110,12 +131,72 @@ class MicroBreakCoach {
       ]
     };
     
-    chrome.notifications.create('microBreakNotification', options);
+    try {
+      await chrome.notifications.create('microBreakNotification', options);
+      console.log('MicroBreakCoach: Notification created successfully');
+    } catch (error) {
+      console.error('MicroBreakCoach: Error creating notification:', error);
+      
+      // Fallback: try without icon
+      const fallbackOptions = {
+        type: 'basic',
+        title: `Time for a break! ${exercise.emoji}`,
+        message: `${exercise.name}: ${exercise.description}`,
+        priority: 2,
+        requireInteraction: true,
+        buttons: [
+          { title: 'Take Break' },
+          { title: 'Snooze 5 min' }
+        ]
+      };
+      
+      try {
+        await chrome.notifications.create('microBreakNotification', fallbackOptions);
+        console.log('MicroBreakCoach: Fallback notification created');
+      } catch (fallbackError) {
+        console.error('MicroBreakCoach: Fallback notification failed:', fallbackError);
+      }
+    }
+  }
+
+  async showTestNotification() {
+    console.log('MicroBreakCoach: Showing TEST notification');
+    const settings = await this.getSettings();
+    const exercise = this.getRandomExercise(settings.categories);
     
-    // Play sound if enabled
-    if (settings.soundEnabled) {
-      // Note: Chrome extensions can't play audio in background
-      // Sound will be handled in popup when opened
+    const options = {
+      type: 'basic',
+      iconUrl: '/icons/icon128.png',
+      title: `🧪 TEST: ${exercise.emoji} ${exercise.name}`,
+      message: `This is a test notification. ${exercise.description}`,
+      priority: 1,
+      requireInteraction: false,
+      buttons: [
+        { title: 'Test Complete' }
+      ]
+    };
+    
+    try {
+      await chrome.notifications.create('microBreakTestNotification', options);
+      console.log('MicroBreakCoach: Test notification created successfully');
+    } catch (error) {
+      console.error('MicroBreakCoach: Error creating test notification:', error);
+      
+      // Fallback: try without icon
+      const fallbackOptions = {
+        type: 'basic',
+        title: `🧪 TEST: ${exercise.emoji} ${exercise.name}`,
+        message: `This is a test notification. ${exercise.description}`,
+        priority: 1,
+        requireInteraction: false
+      };
+      
+      try {
+        await chrome.notifications.create('microBreakTestNotification', fallbackOptions);
+        console.log('MicroBreakCoach: Test fallback notification created');
+      } catch (fallbackError) {
+        console.error('MicroBreakCoach: Test fallback notification failed:', fallbackError);
+      }
     }
   }
 
@@ -124,13 +205,30 @@ class MicroBreakCoach {
     const today = new Date().toDateString();
     
     if (settings.lastBreakDate !== today) {
-      // First break of the day
+      // First break of the day - reset daily count
       settings.streakCount = 1;
+      // Update best streak if current was better
+      if (settings.dailyStreak && settings.dailyStreak > (settings.bestStreak || 0)) {
+        settings.bestStreak = settings.dailyStreak;
+      }
+      settings.dailyStreak = 1;
     } else {
+      // Same day - increment both counters
       settings.streakCount += 1;
+      settings.dailyStreak = (settings.dailyStreak || 0) + 1;
     }
     
+    // Always increment total breaks
+    settings.totalBreaks = (settings.totalBreaks || 0) + 1;
     settings.lastBreakDate = today;
+    
+    console.log('MicroBreakCoach: Updated streak:', {
+      today: settings.streakCount,
+      total: settings.totalBreaks,
+      daily: settings.dailyStreak,
+      best: settings.bestStreak
+    });
+    
     await this.saveSettings(settings);
   }
 
@@ -147,6 +245,7 @@ const microBreakCoach = new MicroBreakCoach();
 
 // Handle alarm events
 chrome.alarms.onAlarm.addListener((alarm) => {
+  console.log('MicroBreakCoach: Alarm triggered:', alarm.name);
   if (alarm.name === 'microBreakReminder') {
     microBreakCoach.showBreakNotification();
   }
@@ -160,13 +259,25 @@ chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIn
       await microBreakCoach.incrementStreak();
       chrome.notifications.clear(notificationId);
       
-      // Open popup for exercise
-      chrome.action.openPopup();
+      // Open popup and automatically show exercise
+      try {
+        await chrome.action.openPopup();
+        // Send message to popup to show exercise automatically
+        setTimeout(() => {
+          chrome.runtime.sendMessage({ action: 'showExercise' });
+        }, 100);
+      } catch (error) {
+        console.log('Could not open popup, user will need to click extension icon');
+      }
     } else if (buttonIndex === 1) {
       // Snooze button clicked
       await microBreakCoach.snoozeBreak();
       chrome.notifications.clear(notificationId);
     }
+  } else if (notificationId === 'microBreakTestNotification') {
+    // Test notification - just clear it, don't increment counter
+    console.log('MicroBreakCoach: Test notification button clicked');
+    chrome.notifications.clear(notificationId);
   }
 });
 
@@ -175,7 +286,17 @@ chrome.notifications.onClicked.addListener(async (notificationId) => {
   if (notificationId === 'microBreakNotification') {
     await microBreakCoach.incrementStreak();
     chrome.notifications.clear(notificationId);
-    chrome.action.openPopup();
+    
+    // Open popup and automatically show exercise
+    try {
+      await chrome.action.openPopup();
+      // Send message to popup to show exercise automatically
+      setTimeout(() => {
+        chrome.runtime.sendMessage({ action: 'showExercise' });
+      }, 100);
+    } catch (error) {
+      console.log('Could not open popup, user will need to click extension icon');
+    }
   }
 });
 
@@ -200,7 +321,7 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   switch (message.action) {
     case 'testNotification':
-      await microBreakCoach.showBreakNotification();
+      await microBreakCoach.showTestNotification();
       break;
       
     case 'snooze':

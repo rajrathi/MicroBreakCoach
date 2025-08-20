@@ -119,15 +119,21 @@ class OptionsController {
 
   updateStats() {
     // Calculate days active
-    const installDate = new Date(this.settings.installDate);
+    const installDate = new Date(this.settings.installDate || new Date().toDateString());
     const today = new Date();
-    const daysDiff = Math.floor((today - installDate) / (1000 * 60 * 60 * 24)) + 1;
+    const daysDiff = Math.max(1, Math.floor((today - installDate) / (1000 * 60 * 60 * 24)) + 1);
     
-    // Update display
-    document.getElementById('todayBreaks').textContent = this.getTodayBreaks();
-    document.getElementById('totalBreaks').textContent = this.settings.totalBreaks || 0;
-    document.getElementById('bestStreak').textContent = this.settings.bestStreak || 0;
-    document.getElementById('daysActive').textContent = daysDiff;
+    // Update display with current values
+    const todayBreaks = this.getTodayBreaks();
+    const totalBreaks = this.settings.totalBreaks || 0;
+    const bestStreak = this.settings.bestStreak || 0;
+    
+    document.getElementById('todayBreaks').textContent = todayBreaks.toString();
+    document.getElementById('totalBreaks').textContent = totalBreaks.toString();
+    document.getElementById('bestStreak').textContent = bestStreak.toString();
+    document.getElementById('daysActive').textContent = daysDiff.toString();
+    
+    console.log('Stats updated:', { todayBreaks, totalBreaks, bestStreak, daysDiff });
   }
 
   getTodayBreaks() {
@@ -135,7 +141,7 @@ class OptionsController {
     if (this.settings.lastBreakDate === today) {
       return this.settings.streakCount || 0;
     }
-    return 0;
+    return 0; // Different day, so today's count is 0
   }
 
   async testNotification() {
@@ -229,22 +235,42 @@ class OptionsController {
     button.textContent = 'Resetting...';
     button.disabled = true;
     
-    // Reset stats
+    // Reset stats in settings object
     this.settings.streakCount = 0;
     this.settings.totalBreaks = 0;
     this.settings.bestStreak = 0;
     this.settings.lastBreakDate = null;
     this.settings.installDate = new Date().toDateString();
     
-    await this.saveSettings();
-    this.updateStats();
-    
-    button.textContent = 'Reset ✓';
-    
-    setTimeout(() => {
-      button.textContent = originalText;
-      button.disabled = false;
-    }, 2000);
+    try {
+      // Save the reset settings
+      await this.saveSettings();
+      
+      // Update the display immediately with reset values
+      document.getElementById('todayBreaks').textContent = '0';
+      document.getElementById('totalBreaks').textContent = '0';
+      document.getElementById('bestStreak').textContent = '0';
+      document.getElementById('daysActive').textContent = '1';
+      
+      // Also update the full stats display
+      this.updateStats();
+      
+      button.textContent = 'Reset ✓';
+      
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.disabled = false;
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error resetting stats:', error);
+      button.textContent = 'Error';
+      
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.disabled = false;
+      }, 2000);
+    }
   }
 
   async saveSettingsWithFeedback() {
