@@ -11,6 +11,7 @@ class OptionsController {
       isEnabled: true,
       totalBreaks: 0,
       bestStreak: 0,
+      dailyStreak: 0,
       daysActive: 0,
       installDate: new Date().toDateString()
     };
@@ -19,10 +20,24 @@ class OptionsController {
   }
 
   async init() {
-    await this.loadSettings();
-    this.setupEventListeners();
-    this.updateUI();
-    this.updateStats();
+    console.log('OptionsController init started');
+    try {
+      await this.loadSettings();
+      console.log('Settings loaded successfully');
+      
+      this.setupEventListeners();
+      console.log('Event listeners set up');
+      
+      this.updateUI();
+      console.log('UI updated');
+      
+      this.updateStats();
+      console.log('Stats updated');
+      
+      console.log('OptionsController init completed successfully');
+    } catch (error) {
+      console.error('Error during OptionsController init:', error);
+    }
   }
 
   async loadSettings() {
@@ -82,9 +97,17 @@ class OptionsController {
       this.takeBreakNow();
     });
 
-    document.getElementById('resetStatsBtn').addEventListener('click', () => {
-      this.resetStats();
-    });
+    // Reset stats button with debugging
+    const resetBtn = document.getElementById('resetStatsBtn');
+    if (resetBtn) {
+      console.log('Reset button found, attaching event listener');
+      resetBtn.addEventListener('click', () => {
+        console.log('Reset button clicked!');
+        this.resetStats();
+      });
+    } else {
+      console.error('Reset button not found!');
+    }
 
     // Save button
     document.getElementById('saveBtn').addEventListener('click', () => {
@@ -225,9 +248,14 @@ class OptionsController {
   }
 
   async resetStats() {
+    console.log('resetStats method called');
+    
     if (!confirm('Are you sure you want to reset all statistics? This cannot be undone.')) {
+      console.log('Reset cancelled by user');
       return;
     }
+    
+    console.log('User confirmed reset, proceeding...');
     
     const button = document.getElementById('resetStatsBtn');
     const originalText = button.textContent;
@@ -235,16 +263,28 @@ class OptionsController {
     button.textContent = 'Resetting...';
     button.disabled = true;
     
-    // Reset stats in settings object
-    this.settings.streakCount = 0;
-    this.settings.totalBreaks = 0;
-    this.settings.bestStreak = 0;
-    this.settings.lastBreakDate = null;
-    this.settings.installDate = new Date().toDateString();
+    // Reset ALL stats in settings object - comprehensive reset
+    this.settings.streakCount = 0;           // Today's breaks
+    this.settings.totalBreaks = 0;           // Total lifetime breaks
+    this.settings.bestStreak = 0;            // Best daily streak
+    this.settings.dailyStreak = 0;           // Current daily streak (for background sync)
+    this.settings.lastBreakDate = null;      // Last break date (resets daily tracking)
+    this.settings.installDate = new Date().toDateString(); // Reset install date to today
+    
+    // Also reset any other potential stats fields for future compatibility
+    this.settings.weeklyBreaks = 0;
+    this.settings.monthlyBreaks = 0;
+    this.settings.longestStreakDate = null;
     
     try {
       // Save the reset settings
       await this.saveSettings();
+      
+      // Send message to background script to sync the reset
+      chrome.runtime.sendMessage({ 
+        action: 'resetAllStats',
+        settings: this.settings 
+      });
       
       // Update the display immediately with reset values
       document.getElementById('todayBreaks').textContent = '0';
@@ -255,6 +295,7 @@ class OptionsController {
       // Also update the full stats display
       this.updateStats();
       
+      console.log('All statistics reset successfully');
       button.textContent = 'Reset ✓';
       
       setTimeout(() => {
@@ -329,7 +370,24 @@ class OptionsController {
 
 // Initialize options page when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  new OptionsController();
+  console.log('DOM loaded, initializing OptionsController');
+  window.optionsController = new OptionsController();
+  
+  // Additional fallback for reset button in case main event listener fails
+  setTimeout(() => {
+    const resetBtn = document.getElementById('resetStatsBtn');
+    if (resetBtn) {
+      console.log('Setting up fallback reset button handler');
+      resetBtn.addEventListener('click', (e) => {
+        console.log('Fallback reset handler triggered');
+        if (window.optionsController) {
+          window.optionsController.resetStats();
+        } else {
+          console.error('OptionsController not available in fallback handler');
+        }
+      });
+    }
+  }, 1000);
 });
 
 // Listen for messages from background script

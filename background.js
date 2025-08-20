@@ -55,6 +55,32 @@ class MicroBreakCoach {
     console.log('MicroBreakCoach: Initialization complete');
   }
 
+  async clearAllStats() {
+    console.log('MicroBreakCoach: Clearing all statistics...');
+    
+    // Get current settings
+    const settings = await this.getSettings();
+    
+    // Reset only the stats, keep user preferences
+    const resetSettings = {
+      ...settings,
+      streakCount: 0,
+      totalBreaks: 0,
+      bestStreak: 0,
+      dailyStreak: 0,
+      lastBreakDate: null,
+      installDate: new Date().toDateString(),
+      weeklyBreaks: 0,
+      monthlyBreaks: 0,
+      longestStreakDate: null
+    };
+    
+    await this.saveSettings(resetSettings);
+    console.log('MicroBreakCoach: All statistics cleared');
+    
+    return resetSettings;
+  }
+
   async getSettings() {
     return new Promise((resolve) => {
       chrome.storage.sync.get(this.defaultSettings, (result) => {
@@ -353,7 +379,15 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 // Handle extension installation
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async (details) => {
+  console.log('[Extension] onInstalled event triggered:', details.reason);
+  
+  // Clear stats when extension is reloaded (reason will be 'install' or 'update')
+  if (details.reason === 'install' || details.reason === 'update') {
+    console.log('[Extension] Clearing statistics on extension reload...');
+    await microBreakCoach.clearAllStats();
+  }
+  
   microBreakCoach.init();
 });
 
@@ -389,6 +423,18 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       
     case 'takeBreakNow':
       await microBreakCoach.showBreakNotification();
+      break;
+      
+    case 'resetAllStats':
+      // Handle stats reset from options page
+      console.log('MicroBreakCoach: Resetting all statistics');
+      await microBreakCoach.saveSettings(message.settings);
+      // Send message to popup if it's open to update display
+      chrome.runtime.sendMessage({ action: 'statsReset' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.log('Popup not open or stats reset message failed');
+        }
+      });
       break;
   }
   

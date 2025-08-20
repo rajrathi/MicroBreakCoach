@@ -528,5 +528,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     // Return true to indicate we'll send a response asynchronously
     return true;
+    
+  } else if (message.action === 'statsReset') {
+    // Handle stats reset message from options page
+    console.log('Received stats reset message');
+    if (window.popupController && window.popupController.initialized) {
+      // Reload settings and update UI
+      window.popupController.loadSettings().then(() => {
+        window.popupController.updateUI();
+        console.log('Popup stats updated after reset');
+      });
+      sendResponse({ success: true, message: 'Popup stats updated' });
+    } else {
+      sendResponse({ success: false, message: 'Popup not ready' });
+    }
+    return true;
   }
 });
